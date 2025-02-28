@@ -1,27 +1,37 @@
 import axios from "axios";
 import * as cheerio from "cheerio";
 
-export async function scrapeNews(path: string) {
-  const url = `https://www.bbc.com/${path}`; // Change as needed
-  const { data } = await axios.get(url);
-
-  console.log(data);
-
-  const $ = cheerio.load(data);
-  const articles: { title: string; link: string }[] = [];
-
-  $("sc-227eb15e-2 harZpM").each((_, element) => {
-    const title = $(element).text().trim();
-    const link = $(element).attr("href");
-    if (title && link) {
-      articles.push({
-        title,
-        link: link.startsWith("/") ? `https://www.bbc.com${link}` : link,
-      });
-    }
-  });
-
-  return articles;
+interface Article {
+  title: string;
+  link: string;
 }
 
-console.log(scrapeNews("news"));
+export async function scrapeNews(
+  path: string,
+  selector: string
+): Promise<Article[]> {
+  const url = `https://www.hindustantimes.com/${path}`;
+  try {
+    const { data } = await axios.get(url);
+    const $ = cheerio.load(data);
+    const articles: Article[] = [];
+
+    $(selector).each((_, element) => {
+      const title: string = $(element).find("a").text().trim();
+      const link: string | undefined = $(element).find("a").attr("href");
+      if (title && link) {
+        articles.push({
+          title,
+          link: link.startsWith("/")
+            ? `https://www.hindustantimes.com${link}`
+            : link,
+        });
+      }
+    });
+
+    return articles;
+  } catch (error) {
+    console.error("Error fetching news:", error);
+    return [];
+  }
+}
